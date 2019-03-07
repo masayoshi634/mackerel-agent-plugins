@@ -110,8 +110,14 @@ type UWSGIVassalPlugin struct {
 
 // UWSGIWorker struct
 type UWSGIWorker struct {
-	Requests uint64 `json:"requests"`
-	Status   string `json:"status"`
+	Requests       uint64 `json:"requests"`
+	Status         string `json:"status"`
+	Rss            uint64 `json:"rss"`
+	Vsz            uint64 `json:"vsz"`
+	Tx             uint64 `json:"tx"`
+	AvgRequestTime uint64 `json:"avg_rt"`
+	HarakiriCount  uint64 `json:"harakiri_count"`
+	RespawnCount   uint64 `json:"respawn_count"`
 }
 
 // UWSGIWorkers sturct for json struct
@@ -127,6 +133,9 @@ func (p UWSGIVassalPlugin) FetchMetrics() (map[string]float64, error) {
 	stat["cheap"] = 0.0
 	stat["pause"] = 0.0
 	stat["requests"] = 0.0
+	stat["rss"] = 0.0
+	stat["vsz"] = 0.0
+	stat["avg_rt"] = 0.0
 
 	var decoder *json.Decoder
 	if strings.HasPrefix(p.Socket, "unix://") {
@@ -165,6 +174,15 @@ func (p UWSGIVassalPlugin) FetchMetrics() (map[string]float64, error) {
 			stat[worker.Status]++
 		}
 		stat["requests"] += float64(worker.Requests)
+		stat["rss"] += float64(worker.Rss)
+		stat["vsz"] += float64(worker.Vsz)
+		stat["tx"] += float64(worker.Tx)
+		stat["avg_rt"] += float64(worker.AvgRequestTime)
+		stat["harakiri_count"] += float64(worker.HarakiriCount)
+		stat["respawn_count"] += float64(worker.RespawnCount)
+	}
+	if len(workers.Workers) > 0 {
+		stat["avg_rt"] = stat["avg_rt"] / float64(len(workers.Workers))
 	}
 
 	return stat, nil
@@ -190,6 +208,36 @@ func (p UWSGIVassalPlugin) GraphDefinition() map[string]mp.Graphs {
 			Unit:  "float",
 			Metrics: []mp.Metrics{
 				{Name: "requests", Label: "Requests", Diff: true},
+			},
+		},
+		(p.Prefix + ".memory"): {
+			Label: labelPrefix + " Memory",
+			Unit:  "bytes",
+			Metrics: []mp.Metrics{
+				{Name: "rss", Label: "RSS", Diff: false},
+				{Name: "vsz", Label: "VSZ", Diff: false},
+			},
+		},
+		(p.Prefix + ".network"): {
+			Label: labelPrefix + " Network",
+			Unit:  "bytes",
+			Metrics: []mp.Metrics{
+				{Name: "tx", Label: "TX", Diff: false},
+			},
+		},
+		(p.Prefix + ".reqtime"): {
+			Label: labelPrefix + " RequestsTime",
+			Unit:  "integer",
+			Metrics: []mp.Metrics{
+				{Name: "avg_rt", Label: "Average[us]", Diff: false},
+			},
+		},
+		(p.Prefix + ".counter"): {
+			Label: labelPrefix + " Counter",
+			Unit:  "integer",
+			Metrics: []mp.Metrics{
+				{Name: "harakiri_count", Label: "Harakiri", Diff: false},
+				{Name: "respawn_count", Label: "Respawn", Diff: false},
 			},
 		},
 	}
