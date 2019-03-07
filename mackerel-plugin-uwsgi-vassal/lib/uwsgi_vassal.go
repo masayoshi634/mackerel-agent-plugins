@@ -222,7 +222,7 @@ func (p UWSGIVassalPlugin) GraphDefinition() map[string]mp.Graphs {
 			Label: labelPrefix + " Network",
 			Unit:  "bytes",
 			Metrics: []mp.Metrics{
-				{Name: "tx", Label: "TX", Diff: false},
+				{Name: "tx", Label: "TX", Diff: true},
 			},
 		},
 		(p.Prefix + ".reqtime"): {
